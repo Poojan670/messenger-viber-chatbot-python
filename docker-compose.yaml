@@ -1,0 +1,45 @@
+version: "3.2"
+
+services:
+  fastapi:
+    image: "chatbot-server:latest"
+    networks:
+      - chatbot-network
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    container_name: chatbot
+    depends_on:
+      - postgres
+    volumes:
+     - .:/app
+    command: uvicorn app.main:app --proxy-headers --host 0.0.0.0 --port 8000
+
+  postgres:
+    image: "postgres:13.1-alpine"
+    networks:
+      - chatbot-network
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    container_name: postgres
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: chatbot_db
+      PGDATA: /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+
+volumes:
+  dbdata:
+
+networks:
+  chatbot-network:
+    driver: bridge
